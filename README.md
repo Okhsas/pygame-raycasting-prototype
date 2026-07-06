@@ -58,7 +58,3 @@ settings.py        # Constants
 - Enemy AI
 - Better lighting
 - Menus and settings
-
-## Author
-
-Aleksandar Ranchev
