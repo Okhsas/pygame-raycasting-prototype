@@ -1,0 +1,97 @@
+import pygame
+from settings import *
+from player import movePlayer
+from level import generateWalls
+from raycaster import rayCasterDDA
+from level import level
+from render import *
+from lamps import updateLamps
+from victoryScreen import gameWon
+
+
+pygame.init()
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Test")
+running = True
+gameWonScreen = False
+
+
+playerAngle = 90
+fov = FOV
+rayCount = RAY_COUNT
+walls, playerStartX, playerStartY, lamps = generateWalls()
+playerX = playerStartX
+playerY = playerStartY
+
+wallTexture = pygame.image.load("texture/bricksx64.png")
+player = pygame.Rect(playerX, playerY, PLAYER_SIZE, PLAYER_SIZE)
+
+previousMouseX = 0
+coughtTime = 0
+
+clock = pygame.time.Clock()
+while running:
+    for event in pygame.event.get():
+
+        pygame.event.set_grab(True)
+        if event.type == pygame.QUIT:
+            running = False
+
+    keys = pygame.key.get_pressed()
+
+    pygame.mouse.set_visible(False)
+    mouse_x, mouse_y = pygame.mouse.get_pos()
+    mouse_delta_x = mouse_x - SCREEN_WIDTH // 2
+    previousMouseX = mouse_x
+    playerAngle += mouse_delta_x * 0.1
+    pygame.mouse.set_pos((SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+
+    playerAngleList = []
+    if playerAngle >= 360:
+        playerAngle = 0
+    if playerAngle < 0:
+        playerAngle = 359
+
+
+    if keys[pygame.K_ESCAPE]:
+        running = False
+    
+    movePlayer(player, keys, walls, PLAYER_SPEED, playerAngle)
+
+    playerMapX = int(player.centerx // TILE_SIZE)
+    playerMapY = int(player.centery // TILE_SIZE)
+
+    if level[playerMapY][playerMapX] == "e":
+        gameWonScreen = True
+
+    playerCought = False
+
+    rayHits = rayCasterDDA(player, playerAngle, fov, rayCount, level)
+
+    screen.fill((0, 0, 0))
+    if gameWonScreen:
+        gameWon(screen)
+        pygame.display.flip()
+        clock.tick(60)
+        continue
+
+
+    drawPlayerArrow(screen, player, playerAngle)
+    drawWalls(screen, rayHits, wallTexture, lamps)
+    drawMiniMapWalls(screen, walls)
+
+    playerCought = updateLamps(screen, lamps, player)
+
+    if playerCought:
+        coughtTime += clock.get_time()
+    else:
+        coughtTime = 0
+
+    if coughtTime > 1000:
+        running = False
+
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
